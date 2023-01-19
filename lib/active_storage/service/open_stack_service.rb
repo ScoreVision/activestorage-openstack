@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'fog/openstack'
+require 'fog/rackspace'
 
 module ActiveStorage
   class Service
@@ -13,7 +14,11 @@ module ActiveStorage
         @settings = credentials.reverse_merge(connection_options: connection_options)
 
         @public = public
-        @container = Fog::OpenStack.escape(container)
+        if @settings.has_key? :rackspace_api_key
+          @container = Fog::Rackspace.escape(container)
+        else
+          @container = Fog::OpenStack.escape(container)
+        end
       end
 
       def upload(key, io, checksum: nil, disposition: nil, content_type: nil, filename: nil, **)
@@ -43,7 +48,7 @@ module ActiveStorage
             object_for(key).body
           end
         end
-      rescue Fog::OpenStack::Storage::NotFound
+      rescue Fog::OpenStack::Storage::NotFound, Fog::Rackspace::Storage::NotFound
         raise ActiveStorage::FileNotFoundError if defined?(ActiveStorage::FileNotFoundError)
       end
 
@@ -56,7 +61,7 @@ module ActiveStorage
           end
 
           chunk_buffer.join[range]
-        rescue Fog::OpenStack::Storage::NotFound
+        rescue Fog::OpenStack::Storage::NotFound, Fog::Rackspace::Storage::NotFound
           raise ActiveStorage::FileNotFoundError if defined?(ActiveStorage::FileNotFoundError)
         end
       end
@@ -64,7 +69,7 @@ module ActiveStorage
       def delete(key)
         instrument :delete, key: key do
           client.delete_object(container, key)
-        rescue Fog::OpenStack::Storage::NotFound
+        rescue Fog::OpenStack::Storage::NotFound, Fog::Rackspace::Storage::NotFound
           false
         end
       end
@@ -83,7 +88,7 @@ module ActiveStorage
         instrument :exist, key: key do |payload|
           answer = head_for(key)
           payload[:exist] = answer.present?
-        rescue Fog::OpenStack::Storage::NotFound
+        rescue Fog::OpenStack::Storage::NotFound, Fog::Rackspace::Storage::NotFound
           payload[:exist] = false
         end
       end
@@ -138,7 +143,7 @@ module ActiveStorage
           end
           client.post_object(container, key, params)
           true
-        rescue Fog::OpenStack::Storage::NotFound
+        rescue Fog::OpenStack::Storage::NotFound, Fog::Rackspace::Storage::NotFound
           raise ActiveStorage::FileNotFoundError if defined?(ActiveStorage::FileNotFoundError)
         end
       end
@@ -146,7 +151,11 @@ module ActiveStorage
       private
 
       def client
-        @client ||= Fog::OpenStack::Storage.new(settings)
+        if @settings.has_key? :rackspace_api_key
+          @client ||= Fog::Rackspace::Storage.new(settings)
+        else
+          @client ||= Fog::OpenStack::Storage.new(settings)
+        end
       end
 
       def head_for(key)

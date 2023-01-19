@@ -21,6 +21,7 @@ Gem::Specification.new do |s|
   s.files = Dir["{app,config,db,lib}/**/*", "MIT-LICENSE", "Rakefile", "README.md"]
 
   s.add_dependency "fog-openstack", '>= 1.0.9'
+  s.add_dependency "fog-rackspace", '>= 0.1.6'
   s.add_dependency "marcel"
   s.add_dependency "rails", ">= 5.2.2"
 
