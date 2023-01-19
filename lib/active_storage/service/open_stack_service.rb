@@ -12,7 +12,7 @@ module ActiveStorage
       def initialize(container:, credentials:, public: false, connection_options: {})
         super()
         @settings = credentials.reverse_merge(connection_options: connection_options)
-
+        puts @settings.to_yaml
         @public = public
         if @settings.has_key? :rackspace_api_key
           @container = Fog::Rackspace.escape(container)
